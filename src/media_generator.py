@@ -5,47 +5,132 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# ============================================================
+# DIRECTORIES
+# ============================================================
 
-FONT = BASE_DIR / "assets" / "fonts" / "NotoSansSinhala-Regular.ttf"
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 IMAGE_DIR = BASE_DIR / "output" / "images"
 REEL_DIR = BASE_DIR / "output" / "reels"
 
-WIDTH = 1080
+
+# ============================================================
+# VIDEO SETTINGS
+# ============================================================
+
+IMAGE_WIDTH = 1080
 IMAGE_HEIGHT = 1350
+
+REEL_WIDTH = 1080
 REEL_HEIGHT = 1920
 
 FPS = 30
 REEL_SECONDS = 10
 
 
-# ---------------------------------------------------------
+# ============================================================
+# FIND SINHALA FONT
+# ============================================================
+
+def find_sinhala_font():
+
+    possible_fonts = [
+
+        # Repository fonts
+        BASE_DIR / "assets" / "fonts" /
+        "NotoSansSinhala-Regular.ttf",
+
+        BASE_DIR / "assets" / "fonts" /
+        "NotoSansSinhala[wght].ttf",
+
+        BASE_DIR / "assets" / "fonts" /
+        "NotoSansSinhala-VariableFont_wght.ttf",
+
+        # Ubuntu Noto fonts
+        Path(
+            "/usr/share/fonts/truetype/noto/"
+            "NotoSansSinhala-Regular.ttf"
+        ),
+
+        Path(
+            "/usr/share/fonts/opentype/noto/"
+            "NotoSansSinhala-Regular.ttf"
+        ),
+    ]
+
+    for font in possible_fonts:
+
+        if font.exists():
+
+            print(
+                f"Using Sinhala font: {font}"
+            )
+
+            return font
+
+    # Search system fonts
+    font_directories = [
+
+        Path("/usr/share/fonts"),
+        Path("/usr/local/share/fonts")
+    ]
+
+    for directory in font_directories:
+
+        if directory.exists():
+
+            for font in directory.rglob(
+                "*.ttf"
+            ):
+
+                name = font.name.lower()
+
+                if (
+                    "sinhala" in name
+                    or "noto" in name
+                ):
+
+                    print(
+                        f"Using system font: {font}"
+                    )
+
+                    return font
+
+    raise FileNotFoundError(
+        "No Sinhala-compatible font found."
+    )
+
+
+# ============================================================
 # FONT
-# ---------------------------------------------------------
+# ============================================================
 
 def get_font(size):
 
-    if not FONT.exists():
-        raise FileNotFoundError(
-            f"Sinhala font not found:\n{FONT}"
-        )
+    font_path = find_sinhala_font()
 
     return ImageFont.truetype(
-        str(FONT),
+        str(font_path),
         size
     )
 
 
-# ---------------------------------------------------------
+# ============================================================
 # TEXT WRAPPING
-# ---------------------------------------------------------
+# ============================================================
 
-def wrap_text(draw, text, font, max_width):
+def wrap_text(
+    draw,
+    text,
+    font,
+    max_width
+):
 
     words = text.split()
 
     lines = []
+
     current = ""
 
     for word in words:
@@ -62,31 +147,46 @@ def wrap_text(draw, text, font, max_width):
             font=font
         )
 
-        if box[2] - box[0] <= max_width:
+        width = (
+            box[2] - box[0]
+        )
+
+        if width <= max_width:
 
             current = test
 
         else:
 
             if current:
-                lines.append(current)
+
+                lines.append(
+                    current
+                )
 
             current = word
 
     if current:
-        lines.append(current)
+
+        lines.append(
+            current
+        )
 
     return lines
 
+
+# ============================================================
+# CENTER TEXT
+# ============================================================
 
 def draw_center_text(
     draw,
     text,
     y,
     font,
+    width,
     max_width,
     fill="white",
-    stroke=4
+    stroke=5
 ):
 
     lines = wrap_text(
@@ -96,7 +196,9 @@ def draw_center_text(
         max_width
     )
 
-    line_height = font.size + 15
+    line_height = (
+        font.size + 18
+    )
 
     current_y = y
 
@@ -109,12 +211,19 @@ def draw_center_text(
             stroke_width=stroke
         )
 
-        width = box[2] - box[0]
+        line_width = (
+            box[2] - box[0]
+        )
 
-        x = (WIDTH - width) // 2
+        x = (
+            width - line_width
+        ) // 2
 
         draw.text(
-            (x, current_y),
+            (
+                x,
+                current_y
+            ),
             line,
             font=font,
             fill=fill,
@@ -127,480 +236,11 @@ def draw_center_text(
     return current_y
 
 
-# ---------------------------------------------------------
+# ============================================================
 # BACKGROUND
-# ---------------------------------------------------------
+# ============================================================
 
-def background(category, width, height, frame=0):
-
-    if category == "animals":
-
-        bg = (12, 80, 105)
-
-    elif category == "space":
-
-        bg = (8, 10, 45)
-
-    elif category == "sri_lanka":
-
-        bg = (90, 55, 20)
-
-    elif category == "sports":
-
-        bg = (15, 80, 35)
-
-    elif category == "science":
-
-        bg = (35, 25, 80)
-
-    elif category == "nature":
-
-        bg = (25, 100, 55)
-
-    elif category == "technology":
-
-        bg = (20, 35, 65)
-
-    else:
-
-        bg = (35, 55, 80)
-
-    image = Image.new(
-        "RGB",
-        (width, height),
-        bg
-    )
-
-    draw = ImageDraw.Draw(image)
-
-    # Animated decorative circles
-    for i in range(15):
-
-        x = (
-            i * 173
-            + frame * (1 + i % 3)
-        ) % width
-
-        y = (
-            i * 127
-            + frame // 2
-        ) % height
-
-        radius = 20 + (i % 4) * 10
-
-        draw.ellipse(
-            (
-                x - radius,
-                y - radius,
-                x + radius,
-                y + radius
-            ),
-            fill=tuple(
-                min(255, c + 30)
-                for c in bg
-            )
-        )
-
-    return image
-
-
-# ---------------------------------------------------------
-# ANIMAL GRAPHIC
-# ---------------------------------------------------------
-
-def draw_octopus(draw, cx, cy, scale=1.0):
-
-    # head
-    r = int(150 * scale)
-
-    draw.ellipse(
-        (
-            cx - r,
-            cy - r,
-            cx + r,
-            cy + r
-        ),
-        fill=(170, 70, 150),
-        outline="white",
-        width=5
-    )
-
-    # eyes
-    eye_r = int(22 * scale)
-
-    for ex in (
-        cx - int(55 * scale),
-        cx + int(55 * scale)
-    ):
-
-        draw.ellipse(
-            (
-                ex - eye_r,
-                cy - int(40 * scale),
-                ex + eye_r,
-                cy + int(5 * scale)
-            ),
-            fill="white"
-        )
-
-        draw.ellipse(
-            (
-                ex - int(8 * scale),
-                cy - int(35 * scale),
-                ex + int(8 * scale),
-                cy - int(5 * scale)
-            ),
-            fill="black"
-        )
-
-    # tentacles
-    for i in range(8):
-
-        x1 = (
-            cx
-            - int(120 * scale)
-            + i * int(35 * scale)
-        )
-
-        y1 = cy + int(100 * scale)
-
-        x2 = (
-            x1
-            + int(
-                math.sin(i) * 45 * scale
-            )
-        )
-
-        y2 = (
-            cy
-            + int(260 * scale)
-        )
-
-        draw.line(
-            (x1, y1, x2, y2),
-            fill=(170, 70, 150),
-            width=int(35 * scale)
-        )
-
-
-# ---------------------------------------------------------
-# SPACE GRAPHIC
-# ---------------------------------------------------------
-
-def draw_space(draw, width, height, frame=0):
-
-    # stars
-    for i in range(50):
-
-        x = (i * 97) % width
-        y = (i * 137) % height
-
-        r = 2 + (i % 3)
-
-        draw.ellipse(
-            (
-                x-r,
-                y-r,
-                x+r,
-                y+r
-            ),
-            fill="white"
-        )
-
-    # moon movement
-    moon_x = (
-        width // 2
-        + int(
-            math.sin(frame / 30)
-            * 80
-        )
-    )
-
-    moon_y = 500
-
-    r = 190
-
-    draw.ellipse(
-        (
-            moon_x-r,
-            moon_y-r,
-            moon_x+r,
-            moon_y+r
-        ),
-        fill=(220, 220, 200),
-        outline="white",
-        width=5
-    )
-
-    # moon craters
-    for i in range(8):
-
-        cx = moon_x - 100 + (i * 47) % 180
-        cy = moon_y - 90 + (i * 61) % 170
-
-        rr = 15 + i * 3
-
-        draw.ellipse(
-            (
-                cx-rr,
-                cy-rr,
-                cx+rr,
-                cy+rr
-            ),
-            fill=(180, 180, 165)
-        )
-
-
-# ---------------------------------------------------------
-# SRI LANKA GRAPHIC
-# ---------------------------------------------------------
-
-def draw_sri_lanka(draw, width, height):
-
-    # flag-like panel
-    x1 = width // 2 - 280
-    y1 = 260
-    x2 = width // 2 + 280
-    y2 = 600
-
-    draw.rectangle(
-        (x1, y1, x2, y2),
-        fill=(125, 35, 25),
-        outline="white",
-        width=6
-    )
-
-    # decorative yellow frame
-    draw.rectangle(
-        (
-            x1 + 20,
-            y1 + 20,
-            x2 - 20,
-            y2 - 20
-        ),
-        outline=(240, 190, 60),
-        width=12
-    )
-
-    # cricket ball
-    cx = width // 2
-    cy = 820
-
-    r = 100
-
-    draw.ellipse(
-        (
-            cx-r,
-            cy-r,
-            cx+r,
-            cy+r
-        ),
-        fill=(160, 30, 30),
-        outline="white",
-        width=5
-    )
-
-    draw.arc(
-        (
-            cx-r+15,
-            cy-r+15,
-            cx+r-15,
-            cy+r-15
-        ),
-        60,
-        300,
-        fill="white",
-        width=5
-    )
-
-
-# ---------------------------------------------------------
-# SPORTS GRAPHIC
-# ---------------------------------------------------------
-
-def draw_sports(draw, width, height):
-
-    cx = width // 2
-    cy = 600
-
-    # cricket ball
-    r = 110
-
-    draw.ellipse(
-        (
-            cx-r,
-            cy-r,
-            cx+r,
-            cy+r
-        ),
-        fill=(160, 25, 25),
-        outline="white",
-        width=6
-    )
-
-    draw.arc(
-        (
-            cx-r+20,
-            cy-r+20,
-            cx+r-20,
-            cy+r-20
-        ),
-        60,
-        300,
-        fill="white",
-        width=6
-    )
-
-    # bat
-    draw.rounded_rectangle(
-        (
-            cx + 120,
-            cy - 250,
-            cx + 210,
-            cy + 220
-        ),
-        radius=30,
-        fill=(190, 150, 80),
-        outline="white",
-        width=5
-    )
-
-
-# ---------------------------------------------------------
-# SCIENCE GRAPHIC
-# ---------------------------------------------------------
-
-def draw_science(draw, width, height):
-
-    cx = width // 2
-    cy = 600
-
-    # atom
-    for angle in (0, 60, 120):
-
-        box = (
-            cx - 260,
-            cy - 110,
-            cx + 260,
-            cy + 110
-        )
-
-        draw.ellipse(
-            box,
-            outline="white",
-            width=8
-        )
-
-    draw.ellipse(
-        (
-            cx - 45,
-            cy - 45,
-            cx + 45,
-            cy + 45
-        ),
-        fill=(120, 200, 255),
-        outline="white",
-        width=5
-    )
-
-
-# ---------------------------------------------------------
-# NATURE GRAPHIC
-# ---------------------------------------------------------
-
-def draw_nature(draw, width, height):
-
-    ground = int(height * 0.72)
-
-    draw.rectangle(
-        (
-            0,
-            ground,
-            width,
-            height
-        ),
-        fill=(25, 90, 40)
-    )
-
-    # tree
-    trunk_x = width // 2
-
-    draw.rectangle(
-        (
-            trunk_x - 35,
-            ground - 300,
-            trunk_x + 35,
-            ground
-        ),
-        fill=(110, 65, 35)
-    )
-
-    for x, y, r in [
-        (trunk_x - 100, ground - 320, 100),
-        (trunk_x + 100, ground - 330, 110),
-        (trunk_x, ground - 420, 130)
-    ]:
-
-        draw.ellipse(
-            (
-                x-r,
-                y-r,
-                x+r,
-                y+r
-            ),
-            fill=(35, 150, 65)
-        )
-
-
-# ---------------------------------------------------------
-# TECHNOLOGY GRAPHIC
-# ---------------------------------------------------------
-
-def draw_technology(draw, width, height):
-
-    cx = width // 2
-    cy = 600
-
-    draw.rounded_rectangle(
-        (
-            cx - 280,
-            cy - 180,
-            cx + 280,
-            cy + 180
-        ),
-        radius=30,
-        fill=(15, 20, 35),
-        outline="white",
-        width=8
-    )
-
-    draw.rectangle(
-        (
-            cx - 220,
-            cy - 120,
-            cx + 220,
-            cy + 100
-        ),
-        fill=(30, 100, 160)
-    )
-
-    draw.rectangle(
-        (
-            cx - 120,
-            cy + 180,
-            cx + 120,
-            cy + 215
-        ),
-        fill="white"
-    )
-
-
-# ---------------------------------------------------------
-# CATEGORY GRAPHIC
-# ---------------------------------------------------------
-
-def draw_category_graphic(
-    draw,
+def make_background(
     category,
     width,
     height,
@@ -609,80 +249,1118 @@ def draw_category_graphic(
 
     if category == "animals":
 
-        draw_octopus(
-            draw,
-            width // 2,
-            600,
-            1.0
+        base = (
+            10,
+            80,
+            105
         )
 
     elif category == "space":
 
-        draw_space(
+        base = (
+            8,
+            10,
+            45
+        )
+
+    elif category == "nature":
+
+        base = (
+            20,
+            100,
+            50
+        )
+
+    elif category == "sri_lanka":
+
+        base = (
+            95,
+            55,
+            20
+        )
+
+    elif category == "earth":
+
+        base = (
+            10,
+            70,
+            130
+        )
+
+    elif category == "technology":
+
+        base = (
+            15,
+            30,
+            65
+        )
+
+    else:
+
+        base = (
+            30,
+            50,
+            80
+        )
+
+    image = Image.new(
+        "RGB",
+        (
+            width,
+            height
+        ),
+        base
+    )
+
+    draw = ImageDraw.Draw(
+        image
+    )
+
+    # Animated bubbles
+    for i in range(20):
+
+        x = (
+            i * 173
+            + frame * (
+                1 + i % 3
+            )
+        ) % width
+
+        y = (
+            i * 113
+            + frame // 2
+        ) % height
+
+        radius = (
+            10 + i % 5 * 5
+        )
+
+        draw.ellipse(
+            (
+                x - radius,
+                y - radius,
+                x + radius,
+                y + radius
+            ),
+            outline=(
+                min(255, base[0] + 40),
+                min(255, base[1] + 40),
+                min(255, base[2] + 40)
+            ),
+            width=2
+        )
+
+    return image
+
+
+# ============================================================
+# OCTOPUS
+# ============================================================
+
+def draw_octopus(
+    draw,
+    cx,
+    cy,
+    scale=1.0
+):
+
+    color = (
+        180,
+        70,
+        160
+    )
+
+    dark = (
+        120,
+        40,
+        110
+    )
+
+    radius = int(
+        150 * scale
+    )
+
+    # Head
+    draw.ellipse(
+        (
+            cx - radius,
+            cy - radius,
+            cx + radius,
+            cy + radius
+        ),
+        fill=color,
+        outline="white",
+        width=6
+    )
+
+    # Eyes
+    for eye_x in [
+        cx - int(55 * scale),
+        cx + int(55 * scale)
+    ]:
+
+        er = int(
+            25 * scale
+        )
+
+        draw.ellipse(
+            (
+                eye_x - er,
+                cy - 50,
+                eye_x + er,
+                cy
+            ),
+            fill="white"
+        )
+
+        pr = int(
+            10 * scale
+        )
+
+        draw.ellipse(
+            (
+                eye_x - pr,
+                cy - 42,
+                eye_x + pr,
+                cy - 20
+            ),
+            fill="black"
+        )
+
+    # Smile
+    draw.arc(
+        (
+            cx - 50,
+            cy + 20,
+            cx + 50,
+            cy + 80
+        ),
+        0,
+        180,
+        fill="black",
+        width=5
+    )
+
+    # Tentacles
+    for i in range(8):
+
+        x1 = (
+            cx
+            - int(130 * scale)
+            + i * int(
+                37 * scale
+            )
+        )
+
+        y1 = (
+            cy
+            + int(90 * scale)
+        )
+
+        x2 = (
+            x1
+            + int(
+                math.sin(i)
+                * 40
+                * scale
+            )
+        )
+
+        y2 = (
+            cy
+            + int(280 * scale)
+        )
+
+        draw.line(
+            (
+                x1,
+                y1,
+                x2,
+                y2
+            ),
+            fill=color,
+            width=int(
+                35 * scale
+            )
+        )
+
+
+# ============================================================
+# ELEPHANT
+# ============================================================
+
+def draw_elephant(
+    draw,
+    cx,
+    cy,
+    scale=1.0
+):
+
+    grey = (
+        125,
+        130,
+        135
+    )
+
+    dark = (
+        80,
+        85,
+        90
+    )
+
+    # Body
+    draw.ellipse(
+        (
+            cx - 220,
+            cy - 100,
+            cx + 220,
+            cy + 180
+        ),
+        fill=grey,
+        outline="white",
+        width=6
+    )
+
+    # Head
+    draw.ellipse(
+        (
+            cx - 160,
+            cy - 240,
+            cx + 100,
+            cy + 20
+        ),
+        fill=grey,
+        outline="white",
+        width=6
+    )
+
+    # Ear
+    draw.ellipse(
+        (
+            cx - 190,
+            cy - 170,
+            cx - 40,
+            cy - 20
+        ),
+        fill=(
+            105,
+            110,
+            115
+        ),
+        outline="white",
+        width=4
+    )
+
+    # Eye
+    draw.ellipse(
+        (
+            cx - 70,
+            cy - 120,
+            cx - 40,
+            cy - 90
+        ),
+        fill="black"
+    )
+
+    # Trunk
+    draw.line(
+        (
+            cx + 50,
+            cy - 30,
+            cx + 80,
+            cy + 150,
+            cx + 20,
+            cy + 220
+        ),
+        fill=grey,
+        width=65
+    )
+
+    # Legs
+    for offset in [
+        -140,
+        -45,
+        70,
+        150
+    ]:
+
+        draw.rounded_rectangle(
+            (
+                cx + offset,
+                cy + 100,
+                cx + offset + 55,
+                cy + 300
+            ),
+            radius=20,
+            fill=dark
+        )
+
+
+# ============================================================
+# DOLPHIN
+# ============================================================
+
+def draw_dolphin(
+    draw,
+    cx,
+    cy,
+    scale=1.0
+):
+
+    blue = (
+        60,
+        160,
+        210
+    )
+
+    dark = (
+        35,
+        100,
+        150
+    )
+
+    # Body
+    draw.ellipse(
+        (
+            cx - 250,
+            cy - 90,
+            cx + 250,
+            cy + 90
+        ),
+        fill=blue,
+        outline="white",
+        width=6
+    )
+
+    # Nose
+    draw.polygon(
+        [
+            (
+                cx + 220,
+                cy - 20
+            ),
+            (
+                cx + 360,
+                cy
+            ),
+            (
+                cx + 220,
+                cy + 30
+            )
+        ],
+        fill=blue,
+        outline="white"
+    )
+
+    # Dorsal fin
+    draw.polygon(
+        [
+            (
+                cx,
+                cy - 70
+            ),
+            (
+                cx + 40,
+                cy - 180
+            ),
+            (
+                cx + 100,
+                cy - 60
+            )
+        ],
+        fill=dark
+    )
+
+    # Tail
+    draw.polygon(
+        [
+            (
+                cx - 230,
+                cy
+            ),
+            (
+                cx - 360,
+                cy - 90
+            ),
+            (
+                cx - 310,
+                cy
+            ),
+            (
+                cx - 360,
+                cy + 90
+            )
+        ],
+        fill=blue,
+        outline="white"
+    )
+
+    # Eye
+    draw.ellipse(
+        (
+            cx + 130,
+            cy - 50,
+            cx + 160,
+            cy - 20
+        ),
+        fill="black"
+    )
+
+
+# ============================================================
+# SUN
+# ============================================================
+
+def draw_sun(
+    draw,
+    cx,
+    cy
+):
+
+    yellow = (
+        255,
+        190,
+        30
+    )
+
+    radius = 140
+
+    draw.ellipse(
+        (
+            cx - radius,
+            cy - radius,
+            cx + radius,
+            cy + radius
+        ),
+        fill=yellow,
+        outline="white",
+        width=6
+    )
+
+    for angle in range(
+        0,
+        360,
+        30
+    ):
+
+        rad = math.radians(
+            angle
+        )
+
+        x1 = (
+            cx
+            + int(
+                math.cos(rad)
+                * 180
+            )
+        )
+
+        y1 = (
+            cy
+            + int(
+                math.sin(rad)
+                * 180
+            )
+        )
+
+        x2 = (
+            cx
+            + int(
+                math.cos(rad)
+                * 250
+            )
+        )
+
+        y2 = (
+            cy
+            + int(
+                math.sin(rad)
+                * 250
+            )
+        )
+
+        draw.line(
+            (
+                x1,
+                y1,
+                x2,
+                y2
+            ),
+            fill=yellow,
+            width=12
+        )
+
+
+# ============================================================
+# MOON
+# ============================================================
+
+def draw_moon(
+    draw,
+    cx,
+    cy
+):
+
+    radius = 180
+
+    draw.ellipse(
+        (
+            cx - radius,
+            cy - radius,
+            cx + radius,
+            cy + radius
+        ),
+        fill=(
+            225,
+            225,
+            205
+        ),
+        outline="white",
+        width=5
+    )
+
+    # shadow creates crescent-like appearance
+    draw.ellipse(
+        (
+            cx - radius + 65,
+            cy - radius,
+            cx + radius + 65,
+            cy + radius
+        ),
+        fill=(
+            8,
+            10,
+            45
+        )
+    )
+
+    # craters
+    for x, y, r in [
+        (-70, -50, 20),
+        (-40, 60, 28),
+        (-90, 100, 15)
+    ]:
+
+        draw.ellipse(
+            (
+                cx + x - r,
+                cy + y - r,
+                cx + x + r,
+                cy + y + r
+            ),
+            fill=(
+                180,
+                180,
+                165
+            )
+        )
+
+
+# ============================================================
+# BAMBOO
+# ============================================================
+
+def draw_bamboo(
+    draw,
+    cx,
+    cy
+):
+
+    green = (
+        50,
+        160,
+        70
+    )
+
+    dark = (
+        25,
+        100,
+        45
+    )
+
+    for offset in [
+        -80,
+        0,
+        80
+    ]:
+
+        x = cx + offset
+
+        draw.line(
+            (
+                x,
+                cy + 250,
+                x + 30,
+                cy - 300
+            ),
+            fill=green,
+            width=35
+        )
+
+        for y in range(
+            cy - 250,
+            cy + 250,
+            100
+        ):
+
+            draw.line(
+                (
+                    x - 20,
+                    y,
+                    x + 50,
+                    y
+                ),
+                fill=dark,
+                width=8
+            )
+
+        # leaves
+        draw.ellipse(
+            (
+                x - 120,
+                cy - 200,
+                x - 20,
+                cy - 120
+            ),
+            fill=green
+        )
+
+        draw.ellipse(
+            (
+                x + 20,
+                cy - 120,
+                x + 130,
+                cy - 40
+            ),
+            fill=green
+        )
+
+
+# ============================================================
+# SIGIRIYA
+# ============================================================
+
+def draw_sigiriya(
+    draw,
+    width,
+    height
+):
+
+    ground = int(
+        height * 0.78
+    )
+
+    # ground
+    draw.rectangle(
+        (
+            0,
+            ground,
+            width,
+            height
+        ),
+        fill=(
+            30,
+            100,
+            45
+        )
+    )
+
+    # rock
+    draw.polygon(
+        [
+            (
+                width // 2 - 300,
+                ground
+            ),
+            (
+                width // 2 - 180,
+                ground - 430
+            ),
+            (
+                width // 2 - 70,
+                ground - 520
+            ),
+            (
+                width // 2 + 80,
+                ground - 470
+            ),
+            (
+                width // 2 + 250,
+                ground
+            )
+        ],
+        fill=(
+            125,
+            70,
+            40
+        ),
+        outline="white"
+    )
+
+    # top palace
+    draw.rectangle(
+        (
+            width // 2 - 90,
+            ground - 520,
+            width // 2 + 90,
+            ground - 450
+        ),
+        fill=(
+            190,
+            150,
+            70
+        ),
+        outline="white",
+        width=4
+    )
+
+
+# ============================================================
+# CRICKET
+# ============================================================
+
+def draw_cricket(
+    draw,
+    cx,
+    cy
+):
+
+    red = (
+        170,
+        30,
+        30
+    )
+
+    brown = (
+        190,
+        150,
+        80
+    )
+
+    # Ball
+    r = 110
+
+    draw.ellipse(
+        (
+            cx - r,
+            cy - r,
+            cx + r,
+            cy + r
+        ),
+        fill=red,
+        outline="white",
+        width=6
+    )
+
+    draw.arc(
+        (
+            cx - r + 20,
+            cy - r + 20,
+            cx + r - 20,
+            cy + r - 20
+        ),
+        60,
+        300,
+        fill="white",
+        width=6
+    )
+
+    # Bat
+    draw.rounded_rectangle(
+        (
+            cx + 140,
+            cy - 300,
+            cx + 230,
+            cy + 250
+        ),
+        radius=25,
+        fill=brown,
+        outline="white",
+        width=5
+    )
+
+    draw.line(
+        (
+            cx + 185,
+            cy + 250,
+            cx + 185,
+            cy + 400
+        ),
+        fill=brown,
+        width=50
+    )
+
+
+# ============================================================
+# OCEAN
+# ============================================================
+
+def draw_ocean(
+    draw,
+    width,
+    height,
+    frame=0
+):
+
+    water_top = 550
+
+    draw.rectangle(
+        (
+            0,
+            water_top,
+            width,
+            height
+        ),
+        fill=(
+            15,
+            120,
+            190
+        )
+    )
+
+    # waves
+    for y in range(
+        water_top + 40,
+        height,
+        100
+    ):
+
+        for x in range(
+            -100,
+            width + 100,
+            200
+        ):
+
+            offset = int(
+                math.sin(
+                    (
+                        frame
+                        + x
+                    ) / 30
+                ) * 20
+            )
+
+            draw.arc(
+                (
+                    x,
+                    y + offset,
+                    x + 180,
+                    y + 80 + offset
+                ),
+                180,
+                360,
+                fill="white",
+                width=5
+            )
+
+    # sun
+    draw.ellipse(
+        (
+            800,
+            180,
+            970,
+            350
+        ),
+        fill=(
+            255,
+            200,
+            50
+        )
+    )
+
+
+# ============================================================
+# INTERNET
+# ============================================================
+
+def draw_internet(
+    draw,
+    cx,
+    cy
+):
+
+    blue = (
+        40,
+        150,
+        230
+    )
+
+    radius = 220
+
+    draw.ellipse(
+        (
+            cx - radius,
+            cy - radius,
+            cx + radius,
+            cy + radius
+        ),
+        fill=blue,
+        outline="white",
+        width=7
+    )
+
+    # longitude
+    draw.ellipse(
+        (
+            cx - 90,
+            cy - radius,
+            cx + 90,
+            cy + radius
+        ),
+        outline="white",
+        width=6
+    )
+
+    # latitude
+    draw.arc(
+        (
+            cx - radius,
+            cy - 100,
+            cx + radius,
+            cy + 100
+        ),
+        0,
+        360,
+        fill="white",
+        width=6
+    )
+
+    # horizontal line
+    draw.line(
+        (
+            cx - radius,
+            cy,
+            cx + radius,
+            cy
+        ),
+        fill="white",
+        width=6
+    )
+
+
+# ============================================================
+# DRAW EXACT VISUAL
+# ============================================================
+
+def draw_visual(
+    draw,
+    visual,
+    width,
+    height,
+    frame=0
+):
+
+    cx = width // 2
+
+    # Place main object around upper-middle area
+    cy = int(
+        height * 0.40
+    )
+
+    if visual == "octopus":
+
+        draw_octopus(
+            draw,
+            cx,
+            cy
+        )
+
+    elif visual == "elephant":
+
+        draw_elephant(
+            draw,
+            cx,
+            cy
+        )
+
+    elif visual == "dolphin":
+
+        draw_dolphin(
+            draw,
+            cx,
+            cy
+        )
+
+    elif visual == "sun":
+
+        draw_sun(
+            draw,
+            cx,
+            cy
+        )
+
+    elif visual == "moon":
+
+        draw_moon(
+            draw,
+            cx,
+            cy
+        )
+
+    elif visual == "bamboo":
+
+        draw_bamboo(
+            draw,
+            cx,
+            cy
+        )
+
+    elif visual == "sigiriya":
+
+        draw_sigiriya(
+            draw,
+            width,
+            height
+        )
+
+    elif visual == "cricket":
+
+        draw_cricket(
+            draw,
+            cx,
+            cy
+        )
+
+    elif visual == "ocean":
+
+        draw_ocean(
             draw,
             width,
             height,
             frame
         )
 
-    elif category == "sri_lanka":
+    elif visual == "internet":
 
-        draw_sri_lanka(
+        draw_internet(
             draw,
-            width,
-            height
-        )
-
-    elif category == "sports":
-
-        draw_sports(
-            draw,
-            width,
-            height
-        )
-
-    elif category == "science":
-
-        draw_science(
-            draw,
-            width,
-            height
-        )
-
-    elif category == "nature":
-
-        draw_nature(
-            draw,
-            width,
-            height
-        )
-
-    elif category == "technology":
-
-        draw_technology(
-            draw,
-            width,
-            height
+            cx,
+            cy
         )
 
     else:
 
+        # Generic fallback
         draw.ellipse(
             (
-                width // 2 - 150,
-                400,
-                width // 2 + 150,
-                700
+                cx - 150,
+                cy - 150,
+                cx + 150,
+                cy + 150
             ),
-            fill=(80, 130, 190),
+            fill=(
+                80,
+                140,
+                200
+            ),
             outline="white",
-            width=5
+            width=6
         )
 
 
-# ---------------------------------------------------------
-# IMAGE
-# ---------------------------------------------------------
+# ============================================================
+# CREATE IMAGE
+# ============================================================
 
 def create_image(content):
 
@@ -691,51 +1369,66 @@ def create_image(content):
         exist_ok=True
     )
 
-    image = background(
-        content["category"],
-        WIDTH,
+    image = make_background(
+        content.get(
+            "category",
+            "general"
+        ),
+        IMAGE_WIDTH,
         IMAGE_HEIGHT
     )
 
-    draw = ImageDraw.Draw(image)
+    draw = ImageDraw.Draw(
+        image
+    )
 
+    # Fonts
     title_font = get_font(70)
     fact_font = get_font(48)
     footer_font = get_font(38)
 
-    draw_category_graphic(
+    # Exact visual
+    draw_visual(
         draw,
-        content["category"],
-        WIDTH,
+        content.get(
+            "visual",
+            content.get(
+                "category",
+                "general"
+            )
+        ),
+        IMAGE_WIDTH,
         IMAGE_HEIGHT
     )
 
-    y = 850
-
-    y = draw_center_text(
+    # Title
+    draw_center_text(
         draw,
         content["title"],
-        y,
+        780,
         title_font,
-        WIDTH - 100
+        IMAGE_WIDTH,
+        IMAGE_WIDTH - 100
     )
 
-    y += 30
-
+    # Fact
     draw_center_text(
         draw,
         content["fact"],
-        y,
+        950,
         fact_font,
-        WIDTH - 120
+        IMAGE_WIDTH,
+        IMAGE_WIDTH - 120
     )
 
+    # Branding
     draw_center_text(
         draw,
         "අරුම පුදුම ලෝකය 🌍",
-        1240,
+        1250,
         footer_font,
-        WIDTH - 100
+        IMAGE_WIDTH,
+        IMAGE_WIDTH - 100
     )
 
     output = (
@@ -748,12 +1441,16 @@ def create_image(content):
         "PNG"
     )
 
+    print(
+        f"Image created: {output}"
+    )
+
     return output
 
 
-# ---------------------------------------------------------
-# REEL
-# ---------------------------------------------------------
+# ============================================================
+# CREATE REEL
+# ============================================================
 
 def create_reel(content):
 
@@ -773,48 +1470,65 @@ def create_reel(content):
     )
 
     total_frames = (
-        FPS * REEL_SECONDS
+        FPS
+        * REEL_SECONDS
     )
 
     title_font = get_font(76)
     fact_font = get_font(54)
     footer_font = get_font(40)
 
+    print(
+        f"Creating {total_frames} Reel frames..."
+    )
+
     for frame_number in range(
         total_frames
     ):
 
-        image = background(
-            content["category"],
-            WIDTH,
+        image = make_background(
+            content.get(
+                "category",
+                "general"
+            ),
+            REEL_WIDTH,
             REEL_HEIGHT,
             frame_number
         )
 
-        draw = ImageDraw.Draw(image)
+        draw = ImageDraw.Draw(
+            image
+        )
 
-        # Content-aware illustration
-        draw_category_graphic(
+        # Exact content visual
+        draw_visual(
             draw,
-            content["category"],
-            WIDTH,
+            content.get(
+                "visual",
+                content.get(
+                    "category",
+                    "general"
+                )
+            ),
+            REEL_WIDTH,
             REEL_HEIGHT,
             frame_number
         )
 
         # Animated title
-        title_offset = int(
-            50 * math.sin(
-                frame_number / 18
+        movement = int(
+            25 * math.sin(
+                frame_number / 15
             )
         )
 
         draw_center_text(
             draw,
             content["title"],
-            170 + title_offset,
+            160 + movement,
             title_font,
-            WIDTH - 100
+            REEL_WIDTH,
+            REEL_WIDTH - 100
         )
 
         # Fact
@@ -823,16 +1537,28 @@ def create_reel(content):
             content["fact"],
             1050,
             fact_font,
-            WIDTH - 120
+            REEL_WIDTH,
+            REEL_WIDTH - 120
         )
 
-        # Footer
+        # CTA
+        draw_center_text(
+            draw,
+            "ඔබේ අදහස Comment කරන්න! 💬",
+            1550,
+            footer_font,
+            REEL_WIDTH,
+            REEL_WIDTH - 100
+        )
+
+        # Page name
         draw_center_text(
             draw,
             "අරුම පුදුම ලෝකය 🌍",
-            1780,
+            1800,
             footer_font,
-            WIDTH - 100
+            REEL_WIDTH,
+            REEL_WIDTH - 100
         )
 
         frame_path = (
@@ -845,37 +1571,60 @@ def create_reel(content):
             "PNG"
         )
 
+    # ========================================================
+    # FFMPEG
+    # ========================================================
+
     output = (
         REEL_DIR
         / f"{content['content_id']}.mp4"
     )
 
     command = [
+
         "ffmpeg",
+
         "-y",
+
         "-framerate",
         str(FPS),
+
         "-i",
+
         str(
             frames_dir
             / "frame_%05d.png"
         ),
+
         "-c:v",
         "libx264",
+
         "-preset",
         "veryfast",
+
         "-crf",
         "23",
+
         "-pix_fmt",
         "yuv420p",
+
         "-movflags",
         "+faststart",
+
         str(output)
     ]
+
+    print(
+        "Rendering Reel with FFmpeg..."
+    )
 
     subprocess.run(
         command,
         check=True
+    )
+
+    print(
+        f"Reel created: {output}"
     )
 
     return output
