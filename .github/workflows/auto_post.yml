@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
 
   schedule:
-    # 18:30 Sri Lanka time = 13:00 UTC
+    # Every day at 6:30 PM Sri Lanka time
+    # 6:30 PM SLST = 1:00 PM UTC
     - cron: "0 13 * * *"
 
 permissions:
@@ -17,7 +18,7 @@ jobs:
     steps:
 
       # ==========================================
-      # 1. Checkout repository
+      # 1. Checkout
       # ==========================================
 
       - name: Checkout repository
@@ -26,7 +27,7 @@ jobs:
           fetch-depth: 0
 
       # ==========================================
-      # 2. Setup Python
+      # 2. Python
       # ==========================================
 
       - name: Setup Python
@@ -35,49 +36,59 @@ jobs:
           python-version: "3.12"
 
       # ==========================================
-      # 3. Install Sinhala fonts
+      # 3. System packages
       # ==========================================
 
-      - name: Install Sinhala fonts
+      - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y fonts-noto-core
+          sudo apt-get install -y \
+            ffmpeg \
+            fontconfig \
+            fonts-noto-core
+
+          fc-cache -f -v
 
       # ==========================================
-      # 4. Install FFmpeg
+      # 4. Find Sinhala fonts
       # ==========================================
 
-      - name: Install FFmpeg
+      - name: Check Sinhala fonts
         run: |
-          sudo apt-get install -y ffmpeg
+          echo "Searching for Sinhala fonts..."
+          fc-list :lang=si || true
+
+          echo ""
+          echo "Searching Noto fonts..."
+          find /usr/share/fonts -iname "*sinhala*" -o -iname "*noto*" | head -100
 
       # ==========================================
-      # 5. Install Python packages
+      # 5. Python packages
       # ==========================================
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       # ==========================================
-      # 6. Verify environment
+      # 6. Check Python
       # ==========================================
 
       - name: Check Python
         run: |
           python --version
 
+      # ==========================================
+      # 7. Check FFmpeg
+      # ==========================================
+
       - name: Check FFmpeg
         run: |
-          ffmpeg -version
-
-      - name: Check Sinhala fonts
-        run: |
-          fc-list :lang=si
+          ffmpeg -version | head -5
 
       # ==========================================
-      # 7. Run Facebook automation
+      # 8. Publish Facebook content
       # ==========================================
 
       - name: Publish Facebook content
@@ -88,7 +99,7 @@ jobs:
           python main.py
 
       # ==========================================
-      # 8. Save content history
+      # 9. Save history
       # ==========================================
 
       - name: Save content history
@@ -99,7 +110,7 @@ jobs:
           git add data/history.json
 
           if git diff --cached --quiet; then
-            echo "No history changes to commit."
+            echo "No history changes."
           else
             git commit -m "Update content history"
             git push
