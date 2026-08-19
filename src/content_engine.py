@@ -16,17 +16,17 @@ FORMATS_FILE = BASE_DIR / "data" / "formats.json"
 
 CTAS = [
     "❤️ මේ වගේ තවත් පුදුම දේවල් දැනගන්න අපිව Follow කරන්න!",
-    "👇 මේ ගැන ඔබ කලින් දැනගෙන හිටියාද? Comment කරන්න!",
+    "👇 ඔබ මේක කලින් දැනගෙන හිටියාද? Comment කරන්න!",
     "🔄 මේක ඔබේ යාළුවන්ටත් Share කරන්න!",
     "🤯 පුදුම හිතුණා නම් ❤️ එකක් දාන්න!",
-    "🌍 තවත් අලුත් Facts සඳහා අපිත් එක්ක එකතු වෙන්න!"
+    "🌍 තවත් අලුත් දේවල් දැනගන්න අපිත් එක්ක එකතු වෙන්න!"
 ]
 
 
 HASHTAGS = [
     "#අරුමපුදුමලෝකය #AmazingFacts #SinhalaFacts",
     "#අරුමපුදුමලෝකය #දැනගමු #InterestingFacts",
-    "#AmazingWorld #Sinhala #Facts",
+    "#අරුමපුදුමලෝකය #Sinhala #Facts",
     "#අරුමපුදුමලෝකය #DidYouKnow"
 ]
 
@@ -57,21 +57,43 @@ def normalize(text):
     return text.strip()
 
 
-def already_used(source_title, history):
-    title = normalize(source_title)
+def already_used(title, history):
+    current = normalize(title)
 
     for item in history:
-        old_title = normalize(
+        previous = normalize(
             item.get("source_title", "")
         )
 
-        if old_title == title:
+        if current == previous:
             return True
 
     return False
 
 
-def make_source_post(source):
+def clean_text(text):
+    text = text.replace("\n", " ")
+    text = re.sub(r"\s+", " ", text)
+
+    # Remove common unwanted wiki remnants.
+    unwanted = [
+        "{{",
+        "}}",
+        "[[",
+        "]]",
+        "==",
+        "'''",
+        "''"
+    ]
+
+    for item in unwanted:
+        text = text.replace(item, "")
+
+    return text.strip()
+
+
+def make_post(source):
+
     hooks = load_json(HOOKS_FILE)
     formats = load_json(FORMATS_FILE)
 
@@ -81,69 +103,68 @@ def make_source_post(source):
     hashtag = random.choice(HASHTAGS)
 
     title = source["title"]
-    source_text = source["source"]
+    paragraph = clean_text(source["source"])
 
-    # Use the first useful paragraph.
-    paragraphs = [
-        p.strip()
-        for p in source_text.split("\n")
-        if len(p.strip()) > 80
-    ]
-
-    if not paragraphs:
-        return None
-
-    paragraph = paragraphs[0]
-
-    # Keep Facebook post reasonably short.
-    if len(paragraph) > 500:
-        paragraph = paragraph[:500].rsplit(" ", 1)[0] + "..."
+    # Keep Facebook posts readable.
+    if len(paragraph) > 650:
+        paragraph = (
+            paragraph[:650]
+            .rsplit(" ", 1)[0]
+            + "..."
+        )
 
     if content_format == "question":
+
         message = (
-            f"{hook}\n\n"
-            f"🌍 {title}\n\n"
+            f"🤔 {title}\n\n"
             f"{paragraph}\n\n"
-            f"🤔 මේ ගැන ඔබේ අදහස මොකක්ද?"
+            f"💬 මේ ගැන ඔබේ අදහස මොකක්ද?"
         )
 
     elif content_format == "quiz":
+
         message = (
-            f"{hook}\n\n"
             f"🧩 පොඩි Quiz එකක්!\n\n"
             f"📚 මාතෘකාව: {title}\n\n"
             f"{paragraph}\n\n"
-            f"👇 ඔබ දන්නා දේ Comment කරන්න!"
+            f"👇 ඔබේ පිළිතුර Comment කරන්න!"
         )
 
     elif content_format == "challenge":
+
         message = (
-            f"{hook}\n\n"
-            f"🧠 Challenge එකක්!\n\n"
-            f"{title} ගැන මේ තොරතුර කියවලා "
-            f"ඔබේ යාළුවෙකුටත් කියන්න:\n\n"
+            f"🧠 ඔබ මේක දැනගෙන හිටියාද?\n\n"
+            f"🔎 {title}\n\n"
             f"{paragraph}"
         )
 
     elif content_format == "comparison":
+
         message = (
-            f"{hook}\n\n"
+            f"⚖️ අද දැනගමු!\n\n"
             f"🌍 {title}\n\n"
-            f"{paragraph}\n\n"
-            f"✨ මේ වගේ තවත් පුදුම දේවල් බලමු!"
+            f"{paragraph}"
         )
 
     else:
+
         message = (
             f"{hook}\n\n"
             f"💡 {title}\n\n"
             f"{paragraph}"
         )
 
-    message += f"\n\n{cta}\n\n{hashtag}"
+    message += (
+        f"\n\n{cta}"
+        f"\n\n{hashtag}"
+    )
 
     return {
-        "id": "wiki_" + normalize(title).replace(" ", "_"),
+        "id": (
+            "wiki_"
+            + normalize(title)
+            .replace(" ", "_")
+        ),
         "category": "fresh_source",
         "topic": title,
         "format": content_format,
@@ -160,23 +181,26 @@ def choose_content():
 
     history = load_json(HISTORY_FILE)
 
-    # Try several fresh sources.
-    for _ in range(10):
+    # Try several different fresh sources.
+    for _ in range(15):
 
         source = get_fresh_source()
 
         if not source:
             continue
 
-        if already_used(source["title"], history):
+        if already_used(
+            source["title"],
+            history
+        ):
             continue
 
-        post = make_source_post(source)
+        post = make_post(source)
 
         if post:
             return post
 
-    # Fall back to an unused local fact.
+    # Local database fallback.
     facts = load_json(FACTS_FILE)
 
     used_ids = {
@@ -191,30 +215,39 @@ def choose_content():
         if fact.get("id") not in used_ids
     ]
 
-    if not available:
-        raise RuntimeError(
-            "No new source-backed content or local facts available."
-        )
+    if available:
 
-    fact = random.choice(available)
+        fact = random.choice(available)
+        cta = random.choice(CTAS)
+        hashtag = random.choice(HASHTAGS)
 
-    return {
-        "id": fact["id"],
-        "category": fact.get("category", "unknown"),
-        "topic": fact.get("topic", "unknown"),
-        "format": "fact",
-        "hook": "🤯 ඔබ මේක දැනගෙන හිටියද?",
-        "cta": random.choice(CTAS),
-        "fact": fact["fact"],
-        "source_title": "",
-        "source_url": "",
-        "text": (
-            f"🤯 ඔබ මේක දැනගෙන හිටියද?\n\n"
-            f"💡 {fact['fact']}\n\n"
-            f"{random.choice(CTAS)}\n\n"
-            f"{random.choice(HASHTAGS)}"
-        )
-    }
+        return {
+            "id": fact["id"],
+            "category": fact.get(
+                "category",
+                "unknown"
+            ),
+            "topic": fact.get(
+                "topic",
+                "unknown"
+            ),
+            "format": "fact",
+            "hook": "🤯 ඔබ මේක දැනගෙන හිටියාද?",
+            "cta": cta,
+            "fact": fact["fact"],
+            "source_title": "",
+            "source_url": "",
+            "text": (
+                "🤯 ඔබ මේක දැනගෙන හිටියාද?\n\n"
+                f"💡 {fact['fact']}\n\n"
+                f"{cta}\n\n"
+                f"{hashtag}"
+            )
+        }
+
+    raise RuntimeError(
+        "No new content is available."
+    )
 
 
 def remember_content(content):
@@ -229,12 +262,17 @@ def remember_content(content):
         "hook": content["hook"],
         "cta": content["cta"],
         "source_title": content.get(
-            "source_title", ""
+            "source_title",
+            ""
         ),
         "source_url": content.get(
-            "source_url", ""
+            "source_url",
+            ""
         ),
         "text": content["text"]
     })
 
-    save_json(HISTORY_FILE, history)
+    save_json(
+        HISTORY_FILE,
+        history
+    )
