@@ -6,28 +6,21 @@ import requests
 
 
 # ============================================================
-# SETTINGS
+# FACEBOOK SETTINGS
 # ============================================================
 
 GRAPH_VERSION = "v23.0"
-
 GRAPH_URL = f"https://graph.facebook.com/{GRAPH_VERSION}"
-
-
-# ============================================================
-# ENVIRONMENT
-# ============================================================
 
 PAGE_ID = os.getenv("FB_PAGE_ID")
 PAGE_ACCESS_TOKEN = os.getenv("FB_PAGE_ACCESS_TOKEN")
 
 
 # ============================================================
-# CHECK SETTINGS
+# CHECK FACEBOOK SETTINGS
 # ============================================================
 
 def check_credentials():
-
     if not PAGE_ID:
         raise RuntimeError(
             "FB_PAGE_ID GitHub Secret is missing."
@@ -40,18 +33,17 @@ def check_credentials():
 
 
 # ============================================================
-# FACEBOOK API ERROR
+# FACEBOOK ERROR HANDLER
 # ============================================================
 
-def raise_facebook_error(response, title):
-
+def facebook_error(response, message):
     try:
         data = response.json()
     except Exception:
         data = response.text
 
     raise RuntimeError(
-        f"{title} {response.status_code}: {data}"
+        f"{message} {response.status_code}: {data}"
     )
 
 
@@ -63,74 +55,70 @@ def publish_text_post(text):
 
     check_credentials()
 
-    url = (
-        f"{GRAPH_URL}/{PAGE_ID}/feed"
-    )
+    url = f"{GRAPH_URL}/{PAGE_ID}/feed"
 
-    payload = {
+    data = {
         "message": text,
-        "access_token": PAGE_ACCESS_TOKEN,
+        "access_token": PAGE_ACCESS_TOKEN
     }
 
-    print(
-        "Publishing Facebook text post..."
-    )
+    print("")
+    print("====================================")
+    print("PUBLISHING FACEBOOK TEXT POST")
+    print("====================================")
 
     response = requests.post(
         url,
-        data=payload,
-        timeout=60
+        data=data,
+        timeout=120
     )
 
     if not response.ok:
-        raise_facebook_error(
+        facebook_error(
             response,
-            "Facebook API error"
+            "Facebook text post error:"
         )
 
     result = response.json()
 
-    print(
-        "Facebook response:"
-    )
-
+    print("Facebook response:")
     print(result)
+
+    print("Text post successfully published.")
 
     return result
 
 
 # ============================================================
-# PHOTO POST
+# IMAGE POST
 # ============================================================
 
-def publish_photo(
+def publish_image_post(
     image_path,
     caption
 ):
 
     check_credentials()
 
-    image_path = Path(
-        image_path
-    )
+    image_path = Path(image_path)
 
     if not image_path.exists():
-
         raise FileNotFoundError(
             f"Image not found: {image_path}"
         )
 
-    url = (
-        f"{GRAPH_URL}/{PAGE_ID}/photos"
-    )
+    print("")
+    print("====================================")
+    print("PUBLISHING FACEBOOK IMAGE POST")
+    print("====================================")
 
     print(
-        "Publishing Facebook image post..."
+        f"Image: {image_path}"
     )
 
-    with image_path.open(
-        "rb"
-    ) as image_file:
+    url = f"{GRAPH_URL}/{PAGE_ID}/photos"
+
+    with image_path.open("rb") as image_file:
 
         files = {
             "source": (
@@ -142,30 +130,28 @@ def publish_photo(
 
         data = {
             "message": caption,
-            "access_token":
-                PAGE_ACCESS_TOKEN,
+            "access_token": PAGE_ACCESS_TOKEN
         }
 
         response = requests.post(
             url,
             data=data,
             files=files,
-            timeout=120
+            timeout=300
         )
 
     if not response.ok:
-        raise_facebook_error(
+        facebook_error(
             response,
-            "Facebook image error"
+            "Facebook image post error:"
         )
 
     result = response.json()
 
-    print(
-        "Facebook image response:"
-    )
-
+    print("Facebook image response:")
     print(result)
+
+    print("Image post successfully published.")
 
     return result
 
@@ -178,57 +164,50 @@ def start_reel_upload():
 
     check_credentials()
 
-    url = (
-        f"{GRAPH_URL}/{PAGE_ID}/video_reels"
-    )
+    url = f"{GRAPH_URL}/{PAGE_ID}/video_reels"
 
     data = {
         "upload_phase": "start",
-        "access_token":
-            PAGE_ACCESS_TOKEN,
+        "access_token": PAGE_ACCESS_TOKEN
     }
 
-    print(
-        "Starting Facebook Reel upload..."
-    )
+    print("")
+    print("Starting Facebook Reel upload...")
 
     response = requests.post(
         url,
         data=data,
-        timeout=60
+        timeout=120
     )
 
     if not response.ok:
-        raise_facebook_error(
+        facebook_error(
             response,
-            "Facebook Reel START error"
+            "Facebook Reel START error:"
         )
 
     result = response.json()
 
+    print("START response:")
+    print(result)
+
     if "video_id" not in result:
         raise RuntimeError(
-            "Facebook did not return video_id: "
+            "Facebook did not return video_id.\n"
             + str(result)
         )
 
     if "upload_url" not in result:
         raise RuntimeError(
-            "Facebook did not return upload_url: "
+            "Facebook did not return upload_url.\n"
             + str(result)
         )
-
-    print(
-        "Facebook Reel upload session:"
-    )
-
-    print(result)
 
     return result
 
 
 # ============================================================
-# UPLOAD REEL BINARY
+# UPLOAD REEL VIDEO FILE
 # ============================================================
 
 def upload_reel_binary(
@@ -236,24 +215,30 @@ def upload_reel_binary(
     video_path
 ):
 
-    video_path = Path(
-        video_path
-    )
+    video_path = Path(video_path)
 
     if not video_path.exists():
-
         raise FileNotFoundError(
-            f"Reel file not found: {video_path}"
+            f"Reel video not found: {video_path}"
         )
 
-    file_size = (
-        video_path.stat().st_size
+    file_size = video_path.stat().st_size
+
+    print("")
+    print("====================================")
+    print("UPLOADING REEL VIDEO FILE")
+    print("====================================")
+
+    print(
+        f"File: {video_path}"
     )
 
     print(
-        f"Uploading Reel file: "
-        f"{file_size:,} bytes"
+        f"Size: {file_size:,} bytes"
     )
+
+    # Facebook Reel upload requires
+    # the actual MP4 binary data.
 
     headers = {
         "Authorization":
@@ -266,28 +251,22 @@ def upload_reel_binary(
             str(file_size),
 
         "Content-Type":
-            "application/octet-stream",
+            "application/octet-stream"
     }
 
-    # IMPORTANT:
-    # Facebook expects the actual binary
-    # video data here.
-
-    with video_path.open(
-        "rb"
-    ) as video_file:
+    with video_path.open("rb") as video_file:
 
         response = requests.post(
             upload_url,
             headers=headers,
             data=video_file,
-            timeout=600
+            timeout=900
         )
 
     if not response.ok:
-        raise_facebook_error(
+        facebook_error(
             response,
-            "Facebook Reel binary upload error"
+            "Facebook Reel binary upload error:"
         )
 
     try:
@@ -298,20 +277,20 @@ def upload_reel_binary(
             "raw": response.text
         }
 
-    print(
-        "Facebook Reel upload response:"
-    )
-
+    print("")
+    print("Facebook binary upload response:")
     print(result)
 
-    if result.get(
-        "success"
-    ) is False:
+    if result.get("success") is False:
 
         raise RuntimeError(
-            "Facebook reported Reel upload failure: "
+            "Facebook reported that the video upload failed:\n"
             + str(result)
         )
+
+    print(
+        "Reel video uploaded successfully."
+    )
 
     return result
 
@@ -320,38 +299,31 @@ def upload_reel_binary(
 # CHECK REEL STATUS
 # ============================================================
 
-def check_reel_status(
-    video_id
-):
+def check_reel_status(video_id):
 
-    url = (
-        f"{GRAPH_URL}/{video_id}"
-    )
+    url = f"{GRAPH_URL}/{video_id}"
 
     params = {
         "fields": "status",
-        "access_token":
-            PAGE_ACCESS_TOKEN,
+        "access_token": PAGE_ACCESS_TOKEN
     }
 
     response = requests.get(
         url,
         params=params,
-        timeout=60
+        timeout=120
     )
 
     if not response.ok:
-        raise_facebook_error(
+        facebook_error(
             response,
-            "Facebook Reel status error"
+            "Facebook Reel status error:"
         )
 
     result = response.json()
 
-    print(
-        "Reel processing status:"
-    )
-
+    print("")
+    print("Reel processing status:")
     print(result)
 
     return result
@@ -369,48 +341,40 @@ def finish_reel_upload(
 
     check_credentials()
 
-    url = (
-        f"{GRAPH_URL}/{PAGE_ID}/video_reels"
-    )
+    url = f"{GRAPH_URL}/{PAGE_ID}/video_reels"
 
     data = {
         "video_id": video_id,
-
         "upload_phase": "finish",
-
         "video_state": "PUBLISHED",
-
         "description": description,
-
-        "access_token":
-            PAGE_ACCESS_TOKEN,
+        "access_token": PAGE_ACCESS_TOKEN
     }
 
     if title:
         data["title"] = title
 
-    print(
-        "Publishing Reel on Facebook..."
-    )
+    print("")
+    print("====================================")
+    print("PUBLISHING REEL")
+    print("====================================")
 
     response = requests.post(
         url,
         data=data,
-        timeout=120
+        timeout=300
     )
 
     if not response.ok:
-        raise_facebook_error(
+        facebook_error(
             response,
-            "Facebook Reel FINISH error"
+            "Facebook Reel FINISH error:"
         )
 
     result = response.json()
 
-    print(
-        "Facebook Reel publish response:"
-    )
-
+    print("")
+    print("Facebook Reel publish response:")
     print(result)
 
     return result
@@ -428,51 +392,45 @@ def publish_reel(
 
     check_credentials()
 
-    video_path = Path(
-        video_path
-    )
+    video_path = Path(video_path)
 
     if not video_path.exists():
 
         raise FileNotFoundError(
-            f"Reel does not exist: {video_path}"
+            f"Reel does not exist:\n{video_path}"
         )
 
     print("")
+    print("====================================")
+    print("FACEBOOK REEL PUBLISHING")
+    print("====================================")
+
     print(
-        "===================================="
+        f"Video: {video_path}"
     )
+
     print(
-        "FACEBOOK REEL UPLOAD"
-    )
-    print(
-        "===================================="
+        f"Size: {video_path.stat().st_size:,} bytes"
     )
 
     # --------------------------------------------------------
     # STEP 1
+    # START
     # --------------------------------------------------------
 
-    start_result = start_reel_upload()
+    start = start_reel_upload()
 
-    video_id = start_result[
-        "video_id"
-    ]
+    video_id = start["video_id"]
+    upload_url = start["upload_url"]
 
-    upload_url = start_result[
-        "upload_url"
-    ]
-
+    print("")
     print(
-        f"Video ID: {video_id}"
-    )
-
-    print(
-        f"Upload URL: {upload_url}"
+        f"Facebook Video ID: {video_id}"
     )
 
     # --------------------------------------------------------
     # STEP 2
+    # UPLOAD ACTUAL MP4
     # --------------------------------------------------------
 
     upload_result = upload_reel_binary(
@@ -480,22 +438,26 @@ def publish_reel(
         video_path
     )
 
+    print("")
     print(
-        "Reel binary uploaded successfully."
+        "Binary upload completed."
+    )
+
+    print(
+        upload_result
     )
 
     # --------------------------------------------------------
     # STEP 3
+    # WAIT FOR FACEBOOK
     # --------------------------------------------------------
 
+    print("")
     print(
-        "Checking Reel processing..."
+        "Waiting for Facebook to process Reel..."
     )
 
-    # Facebook can process asynchronously.
-    # Give it a short amount of time before FINISH.
-
-    for attempt in range(5):
+    for attempt in range(6):
 
         time.sleep(5)
 
@@ -507,7 +469,7 @@ def publish_reel(
 
             print(
                 f"Processing check "
-                f"{attempt + 1}/5"
+                f"{attempt + 1}/6"
             )
 
             print(status)
@@ -515,12 +477,14 @@ def publish_reel(
         except Exception as error:
 
             print(
-                "Status check warning:",
-                error
+                "Status check warning:"
             )
+
+            print(error)
 
     # --------------------------------------------------------
     # STEP 4
+    # FINISH / PUBLISH
     # --------------------------------------------------------
 
     result = finish_reel_upload(
@@ -529,20 +493,30 @@ def publish_reel(
         title
     )
 
-    print(
-        ""
-    )
+    print("")
+    print("====================================")
+    print("FACEBOOK REEL PUBLISHED")
+    print("====================================")
 
-    print(
-        "===================================="
-    )
-
-    print(
-        "REEL SUCCESSFULLY SENT TO FACEBOOK"
-    )
-
-    print(
-        "===================================="
-    )
+    print(result)
 
     return result
+
+
+# ============================================================
+# OPTIONAL ALIAS
+# ============================================================
+#
+# If any old code uses publish_photo(),
+# it will still work.
+#
+
+def publish_photo(
+    image_path,
+    caption
+):
+
+    return publish_image_post(
+        image_path,
+        caption
+    )
