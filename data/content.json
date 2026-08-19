@@ -2,6 +2,7 @@
   {
     "id": "animal_octopus_001",
     "category": "animals",
+    "visual": "octopus",
     "title": "ඔක්ටපස්",
     "emoji": "🐙",
     "fact": "ඔක්ටපස් සත්වයාට හදවත් තුනක් තිබෙනවා.",
@@ -11,6 +12,7 @@
   {
     "id": "animal_elephant_001",
     "category": "animals",
+    "visual": "elephant",
     "title": "අලියා",
     "emoji": "🐘",
     "fact": "අලි සතුන් එකිනෙකා සමඟ විවිධ ශබ්ද සහ සංඥා භාවිතා කරමින් සන්නිවේදනය කරනවා.",
@@ -20,6 +22,7 @@
   {
     "id": "animal_dolphin_001",
     "category": "animals",
+    "visual": "dolphin",
     "title": "ඩොල්ෆින්",
     "emoji": "🐬",
     "fact": "ඩොල්ෆින් සතුන් එකිනෙකා හඳුනාගැනීමට විශේෂ ශබ්ද භාවිතා කරනවා.",
@@ -29,6 +32,7 @@
   {
     "id": "space_sun_001",
     "category": "space",
+    "visual": "sun",
     "title": "සූර්යයා",
     "emoji": "☀️",
     "fact": "සූර්යයා අපේ සෞරග්‍රහ මණ්ඩලයේ විශාලතම වස්තුවයි.",
@@ -38,6 +42,7 @@
   {
     "id": "space_moon_001",
     "category": "space",
+    "visual": "moon",
     "title": "චන්ද්‍රයා",
     "emoji": "🌙",
     "fact": "චන්ද්‍රයා පෘථිවිය වටා ගමන් කරන ස්වභාවික උපග්‍රහයයි.",
@@ -47,6 +52,7 @@
   {
     "id": "nature_bamboo_001",
     "category": "nature",
+    "visual": "bamboo",
     "title": "බැම්බූ",
     "emoji": "🎋",
     "fact": "බැම්බූ වර්ග කිහිපයක් ඉතා වේගයෙන් වර්ධනය වීමට හැකියාවක් තිබෙනවා.",
@@ -56,6 +62,7 @@
   {
     "id": "srilanka_sigiriya_001",
     "category": "sri_lanka",
+    "visual": "sigiriya",
     "title": "සීගිරිය",
     "emoji": "🇱🇰",
     "fact": "සීගිරිය ශ්‍රී ලංකාවේ පිහිටි ප්‍රසිද්ධ පුරාවිද්‍යාත්මක ස්ථානයක්.",
@@ -65,6 +72,7 @@
   {
     "id": "srilanka_cricket_001",
     "category": "sri_lanka",
+    "visual": "cricket",
     "title": "ශ්‍රී ලංකා ක්‍රිකට්",
     "emoji": "🏏",
     "fact": "ශ්‍රී ලංකාවට ටෙස්ට් ක්‍රිකට් තත්ත්වය 1981දී ලැබුණා.",
@@ -74,6 +82,7 @@
   {
     "id": "earth_ocean_001",
     "category": "earth",
+    "visual": "ocean",
     "title": "සාගරය",
     "emoji": "🌊",
     "fact": "පෘථිවියේ මතුපිටින් විශාල කොටසක් සාගරවලින් ආවරණය වී තිබෙනවා.",
@@ -83,6 +92,7 @@
   {
     "id": "technology_internet_001",
     "category": "technology",
+    "visual": "internet",
     "title": "අන්තර්ජාලය",
     "emoji": "🌐",
     "fact": "අන්තර්ජාලය ලොව පුරා මිනිසුන්ට තොරතුරු සහ සේවා හුවමාරු කරගැනීමට උපකාරී වෙනවා.",
