@@ -9,7 +9,9 @@ from src.media_generator import (
 )
 
 from src.facebook import (
-    publish_text_post
+    publish_text_post,
+    publish_image_post,
+    publish_reel
 )
 
 
@@ -28,9 +30,9 @@ def main():
 
     content_type = content["content_type"]
 
-    # -----------------------------
-    # TEXT POST
-    # -----------------------------
+    # --------------------------------
+    # TEXT
+    # --------------------------------
 
     if content_type == "text":
 
@@ -40,17 +42,16 @@ def main():
             content["text"]
         )
 
-        print()
         print("Facebook response:")
         print(result)
 
-    # -----------------------------
-    # IMAGE POST
-    # -----------------------------
+    # --------------------------------
+    # IMAGE
+    # --------------------------------
 
     elif content_type == "image":
 
-        print("Creating Facebook image...")
+        print("Creating image...")
 
         image_path = create_image(
             content
@@ -61,19 +62,23 @@ def main():
             image_path
         )
 
-        # Image publishing will be connected
-        # after the image test is confirmed.
-        print(
-            "Image publishing is not connected yet."
+        print("Publishing image...")
+
+        result = publish_image_post(
+            image_path,
+            content["text"]
         )
 
-    # -----------------------------
+        print("Facebook response:")
+        print(result)
+
+    # --------------------------------
     # REEL
-    # -----------------------------
+    # --------------------------------
 
     elif content_type == "reel":
 
-        print("Creating Facebook Reel...")
+        print("Creating Reel...")
 
         reel_path = create_reel(
             content
@@ -84,11 +89,15 @@ def main():
             reel_path
         )
 
-        # Reel publishing will be connected
-        # after the Reel test is confirmed.
-        print(
-            "Reel publishing is not connected yet."
+        print("Publishing Reel...")
+
+        result = publish_reel(
+            reel_path,
+            content["text"]
         )
+
+        print("Facebook response:")
+        print(result)
 
     else:
 
@@ -96,10 +105,11 @@ def main():
             f"Unknown content type: {content_type}"
         )
 
-    # Save only after successful processing.
+    # Only remember after successful publishing.
     remember(content)
 
     print()
+    print("Content successfully published.")
     print("Content saved to history.")
     print()
 
